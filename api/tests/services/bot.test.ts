@@ -31,12 +31,12 @@ function setup(overrides: Partial<BotDeps> = {}) {
 }
 
 function withCards(overrides: Partial<BotDeps> = {}) {
-  const photos: { card: unknown; theme: string; caption?: string; buttons?: unknown }[] = [];
+  const photos: { card: unknown; caption?: string; buttons?: unknown }[] = [];
   const base = setup({
-    card: (spec, theme) => Buffer.from(JSON.stringify({ spec, theme })),
+    card: (spec) => Buffer.from(JSON.stringify({ spec })),
     sendPhoto: async (_c, png, caption, buttons) => {
-      const { spec, theme } = JSON.parse(png.toString());
-      photos.push({ card: spec, theme, caption, buttons });
+      const { spec } = JSON.parse(png.toString());
+      photos.push({ card: spec, caption, buttons });
     },
     getRule: async () => null,
     ...overrides,
@@ -130,18 +130,6 @@ describe("cards", () => {
     expect(photos[0]?.card).toEqual({ kind: "welcome" });
     expect(photos[0]?.caption).toBe(copy.welcome());
     expect(sent).toHaveLength(0);
-  });
-
-  test("cards follow the theme the user last showed us, defaulting to dark", async () => {
-    const light = withCards({ getTheme: async () => "light" });
-    await light.say("/start");
-    expect(light.photos[0]?.theme).toBe("light");
-    const unknown = withCards({ getTheme: async () => null });
-    await unknown.say("/start");
-    expect(unknown.photos[0]?.theme).toBe("dark");
-    const broken = withCards({ getTheme: async () => { throw new Error("db down"); } });
-    await broken.say("/start");
-    expect(broken.photos[0]?.theme).toBe("dark");
   });
 
   test("/tenth shows the saved percentage and mix, or the defaults", async () => {

@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { env } from "../config/env";
 import { User } from "../models";
-import { myRuleBody, prefsBody, validate } from "../schemas";
+import { myRuleBody, validate } from "../schemas";
 import AppError from "../services/error";
 import { accessOf } from "../services/owner";
 import { readMyRule, saveMyRule } from "../services/rule.service";
@@ -31,12 +31,4 @@ export async function readRule(_req: Request, res: Response) {
 export async function saveRule(req: Request, res: Response) {
   const rule = await saveMyRule(telegramUserOrFail(res), validate(myRuleBody, req.body));
   return sendSuccess(res, "Rule saved", { rule });
-}
-
-export async function savePrefs(req: Request, res: Response) {
-  const tg = telegramUserOrFail(res);
-  const { theme } = validate(prefsBody, req.body);
-  const telegramId = String(tg.id);
-  await User.findOneAndUpdate({ telegramId }, { telegramId, telegramUsername: tg.username, theme }, { upsert: true });
-  return sendSuccess(res, "Preferences saved", { theme });
 }

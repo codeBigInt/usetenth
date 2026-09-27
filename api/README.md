@@ -64,7 +64,6 @@ Base path: `/api/v1`. Responses use `{ message, data, status }`. Every response 
 | GET | `/portfolio` | The demo account's live state: settlement-asset cash, holdings priced by quote, cost basis from the ledger, and gain (null when a price or cost is missing) |
 | POST | `/payments` | Admin only. Record a trusted payment (`userId`, `externalReference`, `amount`, `asset`) and run the investment engine. Idempotent on `externalReference` |
 | GET | `/me` | Who is asking: the Telegram user verified from `Authorization: tma <initData>`, or `null` for the public demo. A forged or expired `initData` gets 401 |
-| PUT | `/me/prefs` | Saves the Telegram user's light or dark theme, reported by the web app each time it opens, so bot cards can match it |
 | GET | `/deposits` | Deposit options for the settlement asset: each accepted network with its address and where it came from, whether this account may create more (`canCreate`), and any bank-transfer details. Demo owner only |
 | POST | `/deposits/addresses` | Address for a network (`{ network }`). Refuses networks the asset does not accept; creates a True Markets address only for a verified account, otherwise 409 with the reason. Demo owner only |
 | POST | `/deposits/wire-instructions` | Sets up bank-transfer details (verified account only). Demo owner only |
@@ -95,6 +94,7 @@ Copy `.env.example` to `.env`.
 | `ADMIN_API_KEY` | for admin routes | | Secret for `POST /users`, `/rules` and `/payments`, sent as `x-admin-key`. Unset means those routes are closed (503) |
 | `INVITE_CODES` | for judges | | Comma-separated codes that unlock demo access through `/start <code>` |
 | `TEST_BUY_ENABLED` | no | `false` | Allows a real buy or sale from the web app. Off means it only shows quotes. Independent of `DRY_RUN` |
+| `DEPOSIT_WATCH_SINCE` | no | server start | ISO date. Deposits before it are history and are never invested. Set it earlier to pick up a deposit made while the server was down |
 | `TEST_BUY_MAX_USD` | no | `2` | Most a single test buy may spend (minimum order is $1) |
 | `DEPOSIT_DEFAULT_NETWORK` | no | `solana` | Network `/deposit` shows first |
 | `NGROK_AUTHTOKEN` | for the tunnel | | ngrok auth token. With `NGROK_TUNNEL_URL` set, the server opens the tunnel itself on startup |
@@ -202,8 +202,7 @@ The bot answers with inline `web_app` buttons, which open the web app in Telegra
 
 - **One domain for both:** the API serves `/api/v1/*` itself and proxies everything else to the web app (`WEB_UPSTREAM_URL`), so the ngrok domain that already receives the webhook also serves the UI. Helmet's strict headers apply to the API only, so they cannot block the page inside Telegram.
 - **Identity:** the page sends Telegram's signed `initData` as `Authorization: tma <initData>`. The API verifies the HMAC against the bot token and rejects stale or forged data (`src/services/telegram-auth.ts`). Opened outside Telegram, the app is the public demo.
-- **Theme:** Telegram does not tell a bot the user's theme, so the web app reports it (`PUT /me/prefs`) every time it opens inside Telegram, and cards are drawn in the last theme seen (dark until then).
-- **Cards:** `/start`, `/tenth` and `/portfolio` reply with an image card (coins, candlesticks and one violet coin per tenth, in light or dark) (welcome, your tenth, your portfolio), and an invested deposit sends the payment-received card. Cards are drawn on the server from SVG templates in `src/services/cards.ts` (`@resvg/resvg-js` with the Poppins fonts in `assets/fonts`, SIL Open Font License) so the numbers are always the user's own. If a card cannot be drawn or sent, the bot sends the same information as plain text.
+- **Cards:** `/start`, `/tenth` and `/portfolio` reply with an image card (coins, candlesticks and one violet coin per tenth, in light) (welcome, your tenth, your portfolio), and an invested deposit sends the payment-received card. Cards are drawn on the server from SVG templates in `src/services/cards.ts` (`@resvg/resvg-js` with the Poppins fonts in `assets/fonts`, SIL Open Font License) so the numbers are always the user's own. If a card cannot be drawn or sent, the bot sends the same information as plain text.
 - **Commands:** `/start` registers you and links the demo account to the first user who starts the bot; `/tenth`, `/portfolio`, `/buy`, `/sell`, `/deposit`, `/address` and `/withdraw` reply and deep-link into the web app. Replayed updates act once.
 - **Your rule:** the web app saves your tenth to your Telegram user (`PUT /me/rule`) and loads it back once per session. A deposit for that user is then split across your assets; legs under the $1.00 minimum order are skipped instead of sent to fail, so an 8-stock mix needs at least $8 invested.
 - **Saved but not enforced yet:** `holdWeekends` and `confirmEach` are stored on the rule but nothing acts on them until the rule engine (`plan()`) replaces the per-rule split in `investment.service`.
@@ -212,7 +211,7 @@ The bot answers with inline `web_app` buttons, which open the web app in Telegra
 
 ### Testing it end to end
 
-1. `cd web-pwa && bun run build && bun run start -p 3100`
+1. `cd web && bun run build && bun run start -p 3100`
 2. `cd api && bun run dev` (starts the tunnel and prints the webhook URL)
 3. In Telegram, send `/start`, then tap **Open usetenth**, or send `/portfolio` or `/tenth`.
 
@@ -252,3 +251,7 @@ Verified with real money: two $1 buys (Apple on Base, Oracle on Robinhood Chain)
 ## Known blocker: buying tokenized stocks
 
 Order placement currently uses the retail gateway (`/quote`, `/orders`). Read-only probes on the demo account show that endpoint quotes **CeFi assets only** (BTC returns a price); every tokenized stock returns `unsupported asset`, with or without a `chain`. Stocks quote through the SDK's DeFi API (`defi.createQuote`, `POST /v1/defi/core/quote`): a $1 buy of AAPLC on Base returns 0.00296845 tokens, quoted in **Base USDC** with three payloads to sign, then `defi.executeTrade` with signatures (`auth.turnkeyStamp` is the SDK's signing helper). Robinhood-chain and Solana quotes returned 500s in the probe. The account's $50 is PYUSD on Solana, so a Base stock also needs USDC on Base. Order execution has to move to the DeFi API before a deposit can buy stocks; until then `DRY_RUN` quotes for stocks come back empty.
+
+## Testing the automatic invest
+
+`bun run simulate-deposit <amount>` prints what a payment of that size would buy for the owner's rule and writes nothing. Add `--run` to record it as a payment and run the pipeline (real buys when `DRY_RUN=false`, quotes otherwise), including the bot notification. Each leg must be at least $1.00, so a 10% rule on a $30 payment supports at most three stocks.

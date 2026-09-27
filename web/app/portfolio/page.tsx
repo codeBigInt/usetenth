@@ -22,8 +22,8 @@ export default function PortfolioPage() {
     <Screen
       brand
       title="Portfolio"
-      subtitle={me?.user?.firstName ? `Hi, ${me.user.firstName}` : undefined}
       right={<ThemeToggle />}
+      subtitle={me?.user?.firstName ? `Hi, ${me.user.firstName}` : undefined}
       footer={
         <div className="flex gap-3">
           <PrimaryButton href="/withdraw" className="flex-[1.4]">Withdraw</PrimaryButton>

@@ -30,7 +30,6 @@ export const myRuleBody = z.object({
 
 export const depositAddressBody = z.object({ network: z.string().min(1).max(40) });
 
-export const prefsBody = z.object({ theme: z.enum(["light", "dark"]) });
 
 export const tradeQuoteBody = z.object({ assetKey: z.string().min(1), amount: z.string() });
 

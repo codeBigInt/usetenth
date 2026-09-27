@@ -116,7 +116,6 @@ async function send<T>(path: string, method: string, body?: unknown): Promise<T>
 export const fetchDeposits = () => send<Deposits>("/deposits", "GET");
 export const createDepositAddress = (network: string) => send<{ asset: string; networks: DepositNetwork[]; canCreate: boolean }>("/deposits/addresses", "POST", { network });
 export const createWireInstructions = () => send<{ wire: Record<string, unknown>[] }>("/deposits/wire-instructions", "POST", {});
-export const saveTheme = (theme: "light" | "dark") => send<{ theme: string }>("/me/prefs", "PUT", { theme });
 
 export interface TradePreview {
   assetKey: string;

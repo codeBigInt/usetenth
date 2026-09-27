@@ -49,16 +49,11 @@ describe("renderCard", () => {
     expect(cardSvg({ ...portfolio(0, null) } as CardSpec)).toContain("Nothing invested yet");
   });
 
-  test("light and dark are different palettes of the same card", () => {
+  test("cards are drawn in the light palette", () => {
     const spec: CardSpec = { kind: "tenth", percent: 10, mixName: "Steady" };
-    const light = cardSvg(spec, "light");
-    const dark = cardSvg(spec, "dark");
-    expect(light).toContain("#FFFFFF");
-    expect(dark).toContain("#151827");
-    expect(dark).not.toContain('fill="#FFFFFF"/>\n');
-    expect([...renderCard(spec, "light").subarray(0, 4)]).toEqual(PNG);
-    expect(renderCard(spec, "light").equals(renderCard(spec, "dark"))).toBe(false);
-    expect(cardSvg(spec)).toBe(dark);
+    expect(cardSvg(spec)).toContain("#FFFFFF");
+    expect(cardSvg(spec)).not.toContain("#151827");
+    expect([...renderCard(spec).subarray(0, 4)]).toEqual(PNG);
   });
 
   test("the art is there: coins, candlesticks and one violet coin per tenth", () => {

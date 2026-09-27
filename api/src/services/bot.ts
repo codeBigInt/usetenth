@@ -1,6 +1,6 @@
 import { escapeHtml as h } from "../utils/html";
 import { usd } from "../utils/money";
-import type { CardSpec, NamedAmount, Theme } from "./cards";
+import type { CardSpec, NamedAmount } from "./cards";
 import { joinNames, networkName, type DepositNetwork } from "./deposit.pure";
 import type { WebAppButton } from "./telegram";
 import type { TelegramUser } from "./telegram-auth";
@@ -40,10 +40,9 @@ export interface BotDeps {
   getPortfolio: () => Promise<BotPortfolio>;
   claimUpdate: (updateId: number) => Promise<boolean>;
   /** Optional: without these the bot answers in text only, or says the feature is off. */
-  card?: (spec: CardSpec, theme: Theme) => Buffer;
+  card?: (spec: CardSpec) => Buffer;
   sendPhoto?: (chatId: number, png: Buffer, caption?: string, buttons?: Buttons) => Promise<void>;
   getRule?: (from: TelegramUser) => Promise<BotRule | null>;
-  getTheme?: (from: TelegramUser) => Promise<Theme | null>;
   /** Null when this user may not act on the demo account. */
   getDeposit?: (from: TelegramUser) => Promise<BotDeposit | null>;
   /** `/start <code>`: "owner" and "granted" mean the user now has demo access. */
@@ -239,13 +238,12 @@ export async function handleUpdate(update: TelegramUpdate, deps: BotDeps): Promi
     return url ? [{ text, url }] : [];
   };
 
-  // A card when we can draw one, in the theme this user last showed us; otherwise the same words as text.
+  // A card when we can draw one; otherwise the same words as text.
   const reply = async (o: { card?: CardSpec; text: string; buttons?: WebAppButton[] }) => {
     const buttons = o.buttons?.length ? o.buttons : undefined;
     if (o.card && deps.card && deps.sendPhoto) {
       try {
-        const theme = (from && (await deps.getTheme?.(from).catch(() => null))) || "dark";
-        await deps.sendPhoto(chatId, deps.card(o.card, theme), o.text, buttons);
+        await deps.sendPhoto(chatId, deps.card(o.card), o.text, buttons);
         return;
       } catch (error) {
         console.error("Card failed, sending text instead", { kind: o.card.kind, message: (error as Error).message });

@@ -30,6 +30,7 @@
   "scripts": {
     "dev": "bun --hot src/index.ts",
     "start": "bun src/index.ts",
+    "simulate-deposit": "bun scripts/simulate-deposit.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   }

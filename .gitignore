@@ -2,6 +2,8 @@
 node_modules
 .claude
 api-key-config
+CLAUDE.md
+AGENTS.md
 # output
 out
 dist

@@ -39,7 +39,7 @@ export async function notifyInvested(eventId: string): Promise<void> {
       "",
       "<blockquote>Open the app to see each order, its fee and the price you paid.</blockquote>",
     ].join("\n");
-    await sendPhoto(chatId, renderCard(spec, user.theme ?? "dark"), caption, button);
+    await sendPhoto(chatId, renderCard(spec), caption, button);
   } catch (error) {
     console.error("Payment card failed, sending text instead", (error as Error).message);
     await sendMessage(chatId, `<b>Your payment came in</b>\n\nWe kept your tenth and invested ${usd(event.investmentAmount)}.`, button);

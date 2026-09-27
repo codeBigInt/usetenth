@@ -35,7 +35,6 @@ const deps: BotDeps = {
     };
   },
   card: renderCard,
-  getTheme: async (from) => (await User.findOne({ telegramId: String(from.id) }).select("theme"))?.theme ?? null,
   getDeposit: async (from) => ((await hasDemoAccess(from)) ? defaultDeposit() : null),
   redeemInvite,
   getSellable: async (from) => {

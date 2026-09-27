@@ -5,6 +5,8 @@ import { TelegramBridge } from "@/components/TelegramBridge";
 import { StoreProvider } from "@/lib/store";
 import "./globals.css";
 
+const themeScript = `try{if(localStorage.getItem('usetenth:theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}`;
+
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
@@ -17,13 +19,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f7fb" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b0d17" },
-  ],
+  themeColor: "#f7f7fb",
 };
-
-const themeScript = `try{var t=localStorage.getItem('usetenth:theme');var d=t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d)}catch(e){}`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

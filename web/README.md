@@ -6,7 +6,7 @@ Mobile-first PWA for **usetenth**: choose how much of each payment to keep inves
 
 | Route | Screen |
 | --- | --- |
-| `/` | Setup: pick the percentage and a mix (redirects to `/portfolio` once done) |
+| `/` | Landing page with a QR code for the bot in a browser; inside Telegram, setup: pick the percentage and a mix (redirects to `/portfolio` once done) |
 | `/portfolio` | Worth today, invested vs ready to withdraw, holdings, nudge to raise the tenth |
 | `/tenth` | Percentage (5, 10, 20 or custom 1 to 50), mix, weekend hold, confirm before each buy |
 | `/tenth/mix` | Presets plus a searchable picker of every stock the API says can be bought right now |
@@ -45,13 +45,12 @@ Run the API first (`cd ../api && bun run dev`) so the stock picker has data.
 
 ## Inside Telegram
 
-The bot's buttons open this app as a Telegram Web App. `components/TelegramBridge.tsx` calls `ready()` and `expand()` and follows Telegram's light or dark scheme until you pick a theme. `lib/telegram.ts` attaches Telegram's signed `initData` to every API call, and the portfolio greets you by name once the API has verified it. See the API README for how to serve both behind one domain.
+The bot's buttons open this app as a Telegram Web App. `components/TelegramBridge.tsx` calls `ready()` and `expand()`. `lib/telegram.ts` attaches Telegram's signed `initData` to every API call, and the portfolio greets you by name once the API has verified it. See the API README for how to serve both behind one domain.
 
-The app also reports Telegram's light or dark scheme to the API on open, so the bot's image cards match it.
 
 ## Design notes
 
-- Colors, spacing and dark mode are CSS variables in `app/globals.css`. The theme follows the system unless toggled, and the choice is stored under `usetenth:theme`.
+- Colors and spacing are CSS variables in `app/globals.css`. Light is the default; the toggle switches to dark and remembers it under `usetenth:theme`. Bot cards are always light.
 - Money is never a float: `lib/money.ts` works in integer cents (`BigInt`) and is covered by `tests/money.test.ts`.
 - Brand assets are in `public/brand/`; PWA icons in `public/icons/`; the manifest is `app/manifest.ts`.
 - The withdraw copy names the target asset and network in `lib/config.ts` (`WITHDRAW_TARGET`, currently USDC on Base, as in the mockup). The True Markets account settles in PYUSD on Solana, so decide which network withdrawals should use before enabling them.

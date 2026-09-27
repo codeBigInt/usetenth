@@ -5,10 +5,8 @@ import { useEffect, useState } from "react";
 interface TelegramWebApp {
   initData: string;
   initDataUnsafe?: { user?: { first_name?: string } };
-  colorScheme?: "light" | "dark";
   ready: () => void;
   expand: () => void;
-  onEvent?: (event: string, cb: () => void) => void;
 }
 
 declare global {

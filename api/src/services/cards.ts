@@ -13,7 +13,6 @@ export type CardSpec =
   | { kind: "portfolio"; worth: string; gain: string | null; invested: string; cash: string; holdings: NamedAmount[] }
   | { kind: "payment"; amount: string; invested: string; kept: string; bought: NamedAmount[] };
 
-export type Theme = "light" | "dark";
 
 const W = 1080;
 
@@ -30,10 +29,7 @@ interface Palette {
   dot: string;
 }
 
-const PALETTES: Record<Theme, Palette> = {
-  light: { bg: "#F7F7FB", card: "#FFFFFF", ink: "#12131A", mute: "#5B5E6E", line: "#E4E4EF", chip: "#F5F5FA", violet: "#5B3DF5", green: "#0E9F6E", red: "#E5484D", dot: "#C8C9DA" },
-  dark: { bg: "#0B0D17", card: "#151827", ink: "#F7F7FB", mute: "#9A9CAD", line: "#262A40", chip: "#1D2135", violet: "#8A72FF", green: "#34D399", red: "#FF6B70", dot: "#3A3F5C" },
-};
+const PALETTE: Palette = { bg: "#F7F7FB", card: "#FFFFFF", ink: "#12131A", mute: "#5B5E6E", line: "#E4E4EF", chip: "#F5F5FA", violet: "#5B3DF5", green: "#0E9F6E", red: "#E5484D", dot: "#C8C9DA" };
 
 const asset = (path: string) => fileURLToPath(new URL(`../../assets/${path}`, import.meta.url));
 const FONT_FILES = ["Regular", "Medium", "SemiBold", "Bold"].map((w) => asset(`fonts/Poppins-${w}.ttf`));
@@ -250,8 +246,8 @@ function payment(s: Extract<CardSpec, { kind: "payment" }>, p: Palette): string 
   );
 }
 
-export function cardSvg(spec: CardSpec, theme: Theme = "dark"): string {
-  const p = PALETTES[theme];
+export function cardSvg(spec: CardSpec): string {
+  const p = PALETTE;
   switch (spec.kind) {
     case "welcome":
       return welcome(p);
@@ -264,8 +260,8 @@ export function cardSvg(spec: CardSpec, theme: Theme = "dark"): string {
   }
 }
 
-export function renderCard(spec: CardSpec, theme: Theme = "dark"): Buffer {
-  const resvg = new Resvg(cardSvg(spec, theme), { font: { fontFiles: FONT_FILES, loadSystemFonts: false, defaultFontFamily: "Poppins" } });
+export function renderCard(spec: CardSpec): Buffer {
+  const resvg = new Resvg(cardSvg(spec), { font: { fontFiles: FONT_FILES, loadSystemFonts: false, defaultFontFamily: "Poppins" } });
   return resvg.render().asPng();
 }
 

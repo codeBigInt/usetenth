@@ -5,7 +5,6 @@ const userSchema = new Schema(
     telegramId: { type: String, unique: true, sparse: true },
     telegramUsername: String,
     email: { type: String, unique: true, sparse: true },
-    theme: { type: String, enum: ["light", "dark"] },
     access: { type: String, enum: ["judge"] },
     invitedWith: String,
   },

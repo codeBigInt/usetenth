@@ -38,6 +38,8 @@ import { Database } from "./services/db";
   const assetSyncJob = new AssetSyncJob();
   assetSyncJob.start();
 
+  const watchSince = env.DEPOSIT_WATCH_SINCE ?? new Date();
+
   // Demo: one shared TM account, so deposits go to the single linked user.
   const depositPoller = new DepositPoller(
     {
@@ -49,7 +51,7 @@ import { Database } from "./services/db";
         }
         const { data, error } = await trueMarketsService.listHistory();
         if (error) throw new Error("history fetch failed");
-        return historyToIncoming(data?.items ?? [], String(userIds[0]));
+        return historyToIncoming(data?.items ?? [], String(userIds[0]), watchSince);
       },
       insertDeposit,
     },
@@ -64,6 +66,7 @@ import { Database } from "./services/db";
     },
   );
   depositPoller.start();
+  console.log(`Deposit watcher: investing deposits made after ${watchSince.toISOString()}`);
 
   let shuttingDown = false;
   const shutdown = async (): Promise<void> => {

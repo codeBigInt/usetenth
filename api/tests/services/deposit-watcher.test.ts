@@ -48,3 +48,14 @@ test("distinct transfers each emit once", async () => {
   expect(await pollOnce(deps)).toHaveLength(2);
   expect(await pollOnce(deps)).toHaveLength(0);
 });
+
+test("deposits made before the cutoff are history and never invested", () => {
+  const since = new Date("2026-09-27T10:00:00Z");
+  const rows = [
+    { id: "old", action: "DEPOSIT", status: "SUCCESS", amount: "50", toAsset: "PYUSD", submittedDate: "2026-09-20T09:00:00Z" },
+    { id: "new", action: "DEPOSIT", status: "SUCCESS", amount: "10", toAsset: "PYUSD", submittedDate: "2026-09-27T10:05:00Z" },
+    { id: "undated", action: "DEPOSIT", status: "SUCCESS", amount: "9", toAsset: "PYUSD" },
+  ];
+  expect(historyToIncoming(rows, "u-1", since).map((t) => t.transferId)).toEqual(["new"]);
+  expect(historyToIncoming(rows, "u-1").map((t) => t.transferId)).toEqual(["old", "new", "undated"]);
+});
