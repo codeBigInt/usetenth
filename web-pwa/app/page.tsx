@@ -1,69 +1,95 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Card, Chip, PrimaryButton, Screen } from "@/components/ui";
+import { SAMPLE_PAYMENT } from "@/lib/config";
+import { MIXES } from "@/lib/mixes";
+import { useSaveRule } from "@/lib/useSaveRule";
+import { percentOf, sub, usd } from "@/lib/money";
+import { useStore } from "@/lib/store";
+
+const PERCENTS = [5, 10, 20];
+
+export default function SetupPage() {
+  const router = useRouter();
+  const { ready, settings, update } = useStore();
+  const { persist, saving, error } = useSaveRule();
+  const [percent, setPercent] = useState(10);
+  const [mixId, setMixId] = useState("steady");
+
+  useEffect(() => {
+    if (ready && settings.onboarded) router.replace("/portfolio");
+  }, [ready, settings.onboarded, router]);
+
+  const invested = percentOf(SAMPLE_PAYMENT, percent);
+
+  const start = async () => {
+    update({ onboarded: true, percent, mixId });
+    const mix = MIXES.find((m) => m.id === mixId) ?? MIXES[0]!;
+    try {
+      await persist({ percent, holdWeekends: false, confirmEach: false }, mix);
+      router.push("/portfolio");
+    } catch {}
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <Screen
+      brand
+      title="usetenth"
+      subtitle="Setting you up"
+      footer={
+        <>
+          <PrimaryButton onClick={start} disabled={saving}>{saving ? "Saving…" : "Verify my identity"}</PrimaryButton>
+          {error ? <p className="mt-3 text-center text-sm text-loss">{error}</p> : null}
+          <p className="mt-3 text-center text-sm text-mute">About 3 minutes. Your keys stay yours.</p>
+        </>
+      }
+    >
+      <Card>
+        <p className="text-[15px]">Two questions and you&apos;re set. You can change both later.</p>
+      </Card>
+
+      <Card>
+        <h2 className="mb-3 text-[15px] font-medium">How much of each payment should I invest?</h2>
+        <div className="flex gap-3">
+          {PERCENTS.map((p) => (
+            <Chip key={p} active={percent === p} onClick={() => setPercent(p)}>
+              {p}%
+            </Chip>
+          ))}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <p className="mt-3 text-sm text-mute">
+          On a {usd(SAMPLE_PAYMENT)} payment that is {usd(invested)} invested, {usd(sub(SAMPLE_PAYMENT, invested))} left for you.
+        </p>
+      </Card>
+
+      <div>
+        <h2 className="mb-3 px-1 text-[15px] font-medium">Pick your mix.</h2>
+        <div className="flex flex-col gap-3">
+          {MIXES.map((m) => {
+            const on = mixId === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => setMixId(m.id)}
+                aria-pressed={on}
+                className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition ${
+                  on ? "border-violet bg-violet/10" : "border-line bg-card/90"
+                }`}
+              >
+                <span className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${on ? "border-violet" : "border-mute/60"}`}>
+                  {on ? <span className="h-3 w-3 rounded-full bg-violet" /> : null}
+                </span>
+                <span>
+                  <span className="block font-medium">{m.name}</span>
+                  <span className="block text-sm text-mute">{m.blurb}</span>
+                </span>
+              </button>
+            );
+          })}
         </div>
-      </main>
-    </div>
+      </div>
+    </Screen>
   );
 }

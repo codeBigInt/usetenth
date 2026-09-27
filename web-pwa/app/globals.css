@@ -1,26 +1,70 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #f7f7fb;
+  --card: #ffffff;
+  --ink: #12131a;
+  --mute: #6b6d7b;
+  --line: #e7e7f0;
+  --chip: #f1f1f7;
+  --violet: #5b3df5;
+  --lime: #d9ff3f;
+  --gain: #0e9f6e;
+  --loss: #e5484d;
+  --glow-a: rgba(91, 61, 245, 0.1);
+  --glow-b: rgba(52, 211, 153, 0.12);
+}
+
+.dark {
+  --bg: #0b0d17;
+  --card: #151827;
+  --ink: #f7f7fb;
+  --mute: #9a9cad;
+  --line: #262a40;
+  --chip: #1d2135;
+  --gain: #34d399;
+  --loss: #ff6b70;
+  --glow-a: rgba(91, 61, 245, 0.22);
+  --glow-b: rgba(52, 211, 153, 0.08);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-mute: var(--mute);
+  --color-line: var(--line);
+  --color-chip: var(--chip);
+  --color-violet: var(--violet);
+  --color-lime: var(--lime);
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--bg);
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100dvh;
+  background:
+    radial-gradient(70% 38% at 0% 0%, var(--glow-a), transparent 70%),
+    radial-gradient(60% 36% at 100% 4%, var(--glow-b), transparent 70%), var(--bg);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.num {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
 }
