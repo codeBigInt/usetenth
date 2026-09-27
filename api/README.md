@@ -255,3 +255,16 @@ Order placement currently uses the retail gateway (`/quote`, `/orders`). Read-on
 ## Testing the automatic invest
 
 `bun run simulate-deposit <amount>` prints what a payment of that size would buy for the owner's rule and writes nothing. Add `--run` to record it as a payment and run the pipeline (real buys when `DRY_RUN=false`, quotes otherwise), including the bot notification. Each leg must be at least $1.00, so a 10% rule on a $30 payment supports at most three stocks.
+
+## Docker
+
+```bash
+docker build -t usetenth-api .
+docker run --rm -p 3000:3000 --env-file .env \
+  -e MONGODB_URI=mongodb://host.docker.internal:27017/usetenth \
+  -e TM_KEY_FILE=/run/secrets/tm-key.json \
+  -v "$PWD/api-key-config/<your-key>.json:/run/secrets/tm-key.json:ro" \
+  --add-host host.docker.internal:host-gateway usetenth-api
+```
+
+The image holds no secrets: `.env` and the True Markets key file are excluded from the build and must be passed at run time (as above, or as your platform's secrets). Inside a container `localhost` is the container itself, so point `MONGODB_URI` and `WEB_UPSTREAM_URL` at the host or service names, and remove `replicaSet` from the URI unless Mongo really is a replica set. The health check calls `/api/v1/readiness`.

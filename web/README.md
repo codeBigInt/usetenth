@@ -30,6 +30,12 @@ Mobile-first PWA for **usetenth**: choose how much of each payment to keep inves
 | --- | --- | --- |
 | `NEXT_PUBLIC_API_URL` | `/api/v1` | API base URL. Same-origin by default: the API answers it behind the public domain, and `next.config.ts` rewrites it to `API_INTERNAL_URL` (default `http://localhost:3000`) when the web app runs on its own port |
 | `NEXT_PUBLIC_APP_MODE` | `demo` | Set to `live` to enable the withdraw button |
+| `NEXT_PUBLIC_BOT_URL` | `https://t.me/usetenth_bot` | Where the landing page's Open in Telegram button points. The QR image is a static file: regenerate it with `bun run qr <url>` |
+| `NEXT_PUBLIC_WITHDRAW_ASSET` / `NEXT_PUBLIC_WITHDRAW_NETWORK` | `USDC` / `Base` | The withdraw screen's target |
+| `NEXT_PUBLIC_SAMPLE_PAYMENT` | `800.00` | The example payment used in the raise-your-tenth nudge |
+| `API_INTERNAL_URL` | `http://localhost:3000` | Server side only. Where `/api/v1` is forwarded when the web app runs on its own port |
+
+`NEXT_PUBLIC_*` values are inlined at build time, so rebuild after changing them. Copy `.env.example` to `.env.local` to set them.
 
 ## Running
 
