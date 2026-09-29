@@ -4,7 +4,6 @@ node_modules
 !.env.example
 api-key-config
 tests
-scripts
 coverage
 *.md
 Dockerfile
