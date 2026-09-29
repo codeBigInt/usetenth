@@ -1,5 +1,4 @@
 import { Deposit } from "../models";
-import { normalizeHistory } from "./history.pure";
 
 export interface IncomingTransfer {
   transferId: string;
@@ -9,18 +8,6 @@ export interface IncomingTransfer {
 }
 
 export type DepositObserved = IncomingTransfer;
-
-export function historyToIncoming(items: unknown[], userId: string, since?: Date): IncomingTransfer[] {
-  const out: IncomingTransfer[] = [];
-  for (const raw of items) {
-    const h = normalizeHistory(raw);
-    const inbound = h.action === "DEPOSIT" || h.action === "RECEIVE";
-    if (!inbound || h.status !== "SUCCESS" || !h.id || !h.amount || !h.toAsset) continue;
-    if (since && (!h.submittedAt || h.submittedAt < since)) continue;
-    out.push({ transferId: h.id, userId, amount: h.amount, asset: h.toAsset });
-  }
-  return out;
-}
 
 export interface DepositWatcherDeps {
   fetchIncoming: () => Promise<IncomingTransfer[]>;

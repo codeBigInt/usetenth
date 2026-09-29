@@ -42,7 +42,7 @@ The API also proxies the web app, so one public domain (an ngrok static domain i
   ```
 
   At 10% a $30 payment invests $3, so use at most three stocks or the legs fall under $1.00. Set `DRY_RUN=false` to make the buys real; otherwise it only fetches quotes.
-- **With a real deposit:** set `DRY_RUN=false`, restart the API, and send PYUSD to the deposit address shown by `/deposit`. The watcher checks every 30 seconds, invests, and the bot sends a card. Only deposits made after the server started are invested (override with `DEPOSIT_WATCH_SINCE`), so the original $50 is never re-invested.
+- **With a real deposit:** set `DRY_RUN=false`, restart the API, and send PYUSD to the wallet address shown by `/deposit`. The watcher checks the settlement-asset balance every 30 seconds and invests any rise since the last check, so it sees this the same way regardless of how the transfer arrived. Its first poll after a restart only baselines the balance — nothing is invested off that poll — so the original $50 is never mistaken for a deposit.
 
 ## Running it
 

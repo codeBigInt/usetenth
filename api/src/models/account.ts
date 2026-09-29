@@ -6,6 +6,8 @@ const accountSchema = new Schema(
     provider: { type: String, enum: ["truemarkets"], default: "truemarkets" },
     externalAccountId: String,
     status: { type: String, enum: ["pending", "active", "restricted"], default: "pending" },
+    // Watermark for the balance-based deposit watcher: the settlement-asset balance last accounted for.
+    lastSettlementBalance: { type: String, default: null },
   },
   { timestamps: true },
 );

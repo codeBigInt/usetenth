@@ -5,7 +5,9 @@ import { trueMarketsService } from "./integrations/truemarkets/truemarkets.servi
 import { AssetSyncJob } from "./jobs/asset-sync.job";
 import { Account, Order, Payment } from "./models";
 import { startTunnel, telegramWebhookUrl } from "./services/tunnel";
-import { DepositPoller, historyToIncoming, insertDeposit } from "./services/deposit-watcher";
+import { DepositPoller, insertDeposit } from "./services/deposit-watcher";
+import { pollBalanceOnce } from "./services/balance-watcher";
+import type { BalanceRow } from "./services/portfolio.pure";
 import { processPayment } from "./services/investment.service";
 import { notifyInvested, shouldNotify } from "./services/notify";
 import { OrderPoller } from "./jobs/order-status.worker";
@@ -38,20 +40,35 @@ import { Database } from "./services/db";
   const assetSyncJob = new AssetSyncJob();
   assetSyncJob.start();
 
-  const watchSince = env.DEPOSIT_WATCH_SINCE ?? new Date();
-
-  // Demo: one shared TM account, so deposits go to the single linked user.
+  // True Markets doesn't surface a raw external transfer landing on this (unverified) account's
+  // wallet through its history or transfers endpoints — only listBalances reflects it. So the
+  // watcher tracks the settlement-asset balance itself: a rise since the last poll is a deposit,
+  // since nothing else in this account's flow raises it (buys spend it, sells pay out elsewhere).
   const depositPoller = new DepositPoller(
     {
       fetchIncoming: async () => {
-        const userIds = await Account.find().distinct("userId");
-        if (userIds.length !== 1) {
-          console.warn(`Deposit watcher: expected 1 linked account, found ${userIds.length}; skipping`);
+        const accounts = await Account.find().distinct("userId");
+        if (accounts.length !== 1) {
+          console.warn(`Deposit watcher: expected 1 linked account, found ${accounts.length}; skipping`);
           return [];
         }
-        const { data, error } = await trueMarketsService.listHistory();
-        if (error) throw new Error("history fetch failed");
-        return historyToIncoming(data?.items ?? [], String(userIds[0]), watchSince);
+        const userId = String(accounts[0]);
+
+        const { data, error } = await trueMarketsService.listBalances();
+        if (error) throw new Error("balance fetch failed");
+        const balances = (data?.data ?? []) as BalanceRow[];
+        const settlement = balances.find((b) => b.symbol === env.TM_SETTLEMENT_ASSET);
+        if (!settlement?.available) throw new Error(`no ${env.TM_SETTLEMENT_ASSET} balance in listBalances`);
+
+        const result = await pollBalanceOnce({
+          fetchBalance: async () => settlement.available!,
+          getWatermark: async () => (await Account.findOne({ userId }).select("lastSettlementBalance"))?.lastSettlementBalance ?? null,
+          setWatermark: async (value) => {
+            await Account.updateOne({ userId }, { lastSettlementBalance: value });
+          },
+        });
+        if (!result) return [];
+        return [{ transferId: `balance-${Date.now()}`, userId, amount: result.amount, asset: env.TM_SETTLEMENT_ASSET }];
       },
       insertDeposit,
     },
@@ -66,7 +83,7 @@ import { Database } from "./services/db";
     },
   );
   depositPoller.start();
-  console.log(`Deposit watcher: investing deposits made after ${watchSince.toISOString()}`);
+  console.log("Deposit watcher: watching the settlement-asset balance for deposits");
 
   let shuttingDown = false;
   const shutdown = async (): Promise<void> => {

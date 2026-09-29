@@ -13,7 +13,7 @@ deposit detected ──► Payment ──► rule engine ──► order intents
                                   rebalance)
 ```
 
-1. The deposit poller reads True Markets account history every 30 seconds and records settled `DEPOSIT`/`RECEIVE` rows. A unique index on the transfer id means a deposit is processed once, however often it is seen.
+1. The deposit poller checks the settlement-asset balance every 30 seconds; a rise since the last check is recorded as a deposit (account history doesn't show external transfers for this unverified account). A unique index on the transfer id means a deposit is processed once, however often it is seen.
 2. The deposit becomes a `Payment`, and `processPayment` applies the user's `Rule` (percentage, minimum amount, allocations).
 3. Orders are quoted and placed through the True Markets service. Every order has an idempotency key and is written before the outbound call.
 4. The order poller tracks status; fills update the append-only ledger and a derived positions cache.
@@ -46,7 +46,7 @@ scripts/              read-only True Markets inspection scripts
 - **Assets and whitelist** ([assets.service.ts](src/services/assets.service.ts), [whitelist.ts](src/config/whitelist.ts)): crypto is a hand-reviewed whitelist (BTC, ETH). Stocks are eligible automatically if they are tradeable and an S&P 500 member ([sp500.ts](src/config/sp500.ts), snapshot 2026-09-24). `DISABLED_STOCK_TICKERS` blocks individual tickers. Assets are keyed by chain and contract address, never by symbol.
 - **Baskets** ([baskets.ts](src/config/baskets.ts)): named weight sets validated at import, so a basket that does not sum to exactly 1 or contains a non-whitelisted asset stops the server from starting.
 - **Rule engine** ([rule-engine.ts](src/services/rule-engine.ts)): pure `plan()` function. Handles percentage, minimum batch, weekend hold, cash-flow-only rebalancing toward underweight assets, and largest-remainder splitting so allocations always re-add to the cent. Not yet called by `investment.service.ts`, which still uses per-rule allocations.
-- **Deposit watcher** ([deposit-watcher.ts](src/services/deposit-watcher.ts)): insert first, emit second. In demo mode deposits are attributed to the single linked user.
+- **Deposit watcher** ([deposit-watcher.ts](src/services/deposit-watcher.ts), [balance-watcher.ts](src/services/balance-watcher.ts)): True Markets' history and transfers endpoints don't record an external transfer landing on this (unverified) account's wallet, only `listBalances` does — so a deposit is detected as a rise in the settlement-asset balance since the last poll, not read from account history. Insert first, emit second; in demo mode deposits are attributed to the single linked user.
 - **Guards** ([guards.ts](src/services/guards.ts)): in `APP_MODE=demo`, per-order and per-user spend caps are enforced before any order.
 
 ## Routes
@@ -94,7 +94,6 @@ Copy `.env.example` to `.env`.
 | `ADMIN_API_KEY` | for admin routes | | Secret for `POST /users`, `/rules` and `/payments`, sent as `x-admin-key`. Unset means those routes are closed (503) |
 | `INVITE_CODES` | for judges | | Comma-separated codes that unlock demo access through `/start <code>` |
 | `TEST_BUY_ENABLED` | no | `false` | Allows a real buy or sale from the web app. Off means it only shows quotes. Independent of `DRY_RUN` |
-| `DEPOSIT_WATCH_SINCE` | no | server start | ISO date. Deposits before it are history and are never invested. Set it earlier to pick up a deposit made while the server was down |
 | `TEST_BUY_MAX_USD` | no | `2` | Most a single test buy may spend (minimum order is $1) |
 | `DEPOSIT_DEFAULT_NETWORK` | no | `solana` | Network `/deposit` shows first |
 | `NGROK_AUTHTOKEN` | for the tunnel | | ngrok auth token. With `NGROK_TUNNEL_URL` set, the server opens the tunnel itself on startup |

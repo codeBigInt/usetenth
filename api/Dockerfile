@@ -11,6 +11,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json tsconfig.json ./
 COPY assets ./assets
 COPY src ./src
+COPY scripts ./scripts
 
 USER bun
 EXPOSE 3000

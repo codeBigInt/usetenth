@@ -12,8 +12,6 @@ const schema = z.object({
   TEST_BUY_MAX_USD: z.string().default("2"),
   ADMIN_API_KEY: z.string().optional(),
   INVITE_CODES: z.string().optional(),
-  // Deposits older than this are history, not new money. Defaults to when the server started, so old transfers never trigger buys.
-  DEPOSIT_WATCH_SINCE: z.coerce.date().optional(),
   DEPOSIT_DEFAULT_NETWORK: z.string().default("solana"),
   WEB_APP_URL: z.string().optional(),
   WEB_UPSTREAM_URL: z.string().default("http://localhost:3100"),
