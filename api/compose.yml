@@ -2,7 +2,7 @@ name: usetenth
 
 services:
   mongo:
-    image: mongo:8
+    image: mongo:7
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:?set MONGO_USER in .env}
