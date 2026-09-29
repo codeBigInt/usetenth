@@ -1,0 +1,36 @@
+name: usetenth
+
+services:
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:?set MONGO_USER in .env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?set MONGO_PASSWORD in .env}
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/usetenth?authSource=admin
+      TM_KEY_FILE: /run/secrets/tm-key.json
+      PORT: 3000
+    volumes:
+      - ${TM_KEY_HOST_PATH:?set TM_KEY_HOST_PATH in .env}:/run/secrets/tm-key.json:ro
+    ports:
+      - "${API_PORT:-3300}:3000"
+
+volumes:
+  mongo-data:

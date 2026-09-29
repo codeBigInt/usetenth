@@ -268,3 +268,27 @@ docker run --rm -p 3000:3000 --env-file .env \
 ```
 
 The image holds no secrets: `.env` and the True Markets key file are excluded from the build and must be passed at run time (as above, or as your platform's secrets). Inside a container `localhost` is the container itself, so point `MONGODB_URI` and `WEB_UPSTREAM_URL` at the host or service names, and remove `replicaSet` from the URI unless Mongo really is a replica set. The health check calls `/api/v1/readiness`.
+
+### Compose on a VPS
+
+`compose.yml` runs the API and MongoDB together. Data lives in the named volume `mongo-data`, so it survives restarts and rebuilds (`docker compose down` keeps it; `down -v` deletes it). Mongo is not published to the host, and it needs a username and password.
+
+1. In `.env`, add `MONGO_USER`, `MONGO_PASSWORD` (letters and digits only) and `TM_KEY_HOST_PATH` (the key file's path on the VPS). The compose file overrides `MONGODB_URI` and `TM_KEY_FILE` itself.
+2. `docker compose up -d --build`, then `docker compose logs -f api`.
+3. Back up with `docker compose exec mongo mongodump --archive --gzip -u "$MONGO_USER" -p "$MONGO_PASSWORD" --authenticationDatabase admin > backup.gz`.
+
+With the web app on Vercel: deploy it with `NEXT_PUBLIC_API_URL=https://<your-api-domain>/api/v1`, then set `WEB_APP_URL` (the bot's buttons) to the Vercel URL. `WEB_UPSTREAM_URL` no longer matters once the web app isn't co-hosted: nothing on the API's domain serves anything but `/api/v1/*` any more, so leave it at its default.
+
+### A VPS that already fronts other containers with certbot
+
+If the VPS already terminates HTTPS for other dockerized services (a reverse proxy plus a certbot certificate for a real domain, or one from a free IP-based service like sslip.io), reuse that pattern instead of ngrok. Ngrok exists for a machine with no public IP or certificate; a VPS that already has both gets a stabler, faster setup without an extra tunnel process:
+
+1. **Pick a free host port.** `API_PORT` defaults to `3300` in `.env.example` to avoid the more obvious `3000`/`3100`, but check `docker ps` for what is already published on this VPS and change it if needed.
+2. **Point a reverse-proxy vhost at that port** the same way the other containers are exposed (an nginx or Caddy server block for a subdomain, or your existing certbot-issued host), forwarding to `localhost:${API_PORT}`.
+3. **Leave `NGROK_AUTHTOKEN` and `NGROK_TUNNEL_URL` unset.** `startTunnel` only runs when both are set, so the server just skips it and relies entirely on the reverse proxy.
+4. **Register the webhook against that domain** instead of an ngrok one (same `setWebhook` call as above, with your real domain in place of `$NGROK_TUNNEL_URL`).
+5. **Set `WEB_APP_URL`** to wherever the web app is actually reachable (the Vercel URL, most likely).
+
+`compose.yml`'s project name is `usetenth`, so its containers are `usetenth-mongo-1` and `usetenth-api-1` — distinct from containers other projects on the same host already run.
+
+**Rotate any secret that has been shared outside `.env`** (pasted into chat, a terminal recording, a screen share): the Telegram bot token, `TELEGRAM_WEBHOOK_SECRET`, `ADMIN_API_KEY`, and the ngrok auth token if you keep using it elsewhere. None of them are read back from this file or logged anywhere in the app.
